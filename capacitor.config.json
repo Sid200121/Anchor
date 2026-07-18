@@ -1,0 +1,10 @@
+{
+  "appId": "com.sid.anchor",
+  "appName": "Anchor",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#1D1930",
+  "android": {
+    "backgroundColor": "#1D1930"
+  }
+}
