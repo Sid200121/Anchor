@@ -33,7 +33,7 @@ jobs:
           fi
 
       - name: Generate app icon & splash screen
-        run: npx capacitor-assets generate --android
+        run: npx @capacitor/assets generate --android
 
       - name: Sync web assets into Android project
         run: npx cap sync android
