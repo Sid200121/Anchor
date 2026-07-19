@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>Anchor — you are not alone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg-0:#1D1930;
+  --bg-1:#251F3D;
+  --bg-2:#2E2749;
+  --bg-3:#382F58;
+  --glow:#F0B86E;
+  --glow-dim:#B8895A;
+  --rose:#E0949F;
+  --mint:#83B8A6;
+  --ink:#F4F0EA;
+  --ink-soft:#A79FC2;
+  --ink-faint:#726A8F;
+  --border:rgba(255,255,255,0.07);
+  --border-2:rgba(255,255,255,0.12);
+  --r-lg:26px;
+  --r-md:18px;
+  --r-sm:12px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; height:100%;}
+body{
+  font-family:'Inter',sans-serif;
+  background: var(--bg-0);
+  color: var(--ink);
+  overflow:hidden;
+}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;} }
+.serif{ font-family:'Fraunces', serif; }
+.serif-i{ font-family:'Fraunces', serif; font-style:italic; }
+.mono{ font-family:'JetBrains Mono', monospace; }
+button{ font-family:inherit; }
+input:focus, button:focus-visible, textarea:focus{ outline:2px solid var(--glow); outline-offset:2px; }
+
+#app{
+  max-width:460px; margin:0 auto; height:100vh; height:100dvh;
+  position:relative; background:var(--bg-0); display:flex; flex-direction:column;
+  overflow:hidden;
+}
+
+/* ambient aurora backdrop */
+.aurora{ position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+.aurora span{ position:absolute; border-radius:50%; filter:blur(60px); opacity:0.35; animation: drift 18s ease-in-out infinite alternate; }
+.aurora .a1{ width:260px; height:260px; background:var(--rose); top:-60px; left:-60px; }
+.aurora .a2{ width:220px; height:220px; background:var(--mint); bottom:10%; right:-70px; animation-delay:-6s; }
+.aurora .a3{ width:180px; height:180px; background:var(--glow); top:40%; left:60%; animation-delay:-12s; opacity:0.18;}
+@keyframes drift{ from{ transform:translate(0,0) scale(1);} to{ transform:translate(24px,-18px) scale(1.15);} }
+
+.screen{ position:relative; z-index:1; flex:1; overflow-y:auto; padding:26px 20px 106px 20px; display:none; }
+.screen.active{ display:block; animation:riseIn .4s cubic-bezier(.2,.8,.2,1); }
+@keyframes riseIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+.eyebrow{ font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); }
+.h1{ font-size:30px; font-weight:600; margin:4px 0 24px 0; letter-spacing:-0.01em; }
+.h2{ font-size:22px; font-weight:600; margin:0 0 4px 0; }
+.sub{ color:var(--ink-soft); font-size:13.5px; margin:0 0 20px 0; line-height:1.5; }
+
+.glass{
+  background: linear-gradient(160deg, var(--bg-2), var(--bg-1));
+  border:1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding:20px;
+  margin-bottom:14px;
+}
+.section-label{ font-size:13px; font-weight:700; color:var(--ink); margin:26px 0 12px 0; display:flex; justify-content:space-between; align-items:baseline; }
+.mini-link{ font-size:12px; font-weight:600; color:var(--glow); background:none; border:none; cursor:pointer; }
+
+/* ---- lamp glow signature ---- */
+.lamp-wrap{ position:relative; width:216px; height:216px; margin:6px auto 0 auto; }
+.lamp-halo{
+  position:absolute; inset:14px; border-radius:50%;
+  background: radial-gradient(circle, var(--glow-dim) 0%, transparent 68%);
+  animation: breatheGlow 6s ease-in-out infinite;
+  filter:blur(6px);
+}
+@keyframes breatheGlow{ 0%,100%{opacity:0.35; transform:scale(0.94);} 50%{opacity:0.7; transform:scale(1.05);} }
+.lamp-svg{ width:100%; height:100%; transform:rotate(-90deg); position:relative; z-index:1;}
+.lamp-track{ fill:none; stroke:var(--bg-3); stroke-width:12; }
+.lamp-progress{ fill:none; stroke:var(--glow); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1); filter: drop-shadow(0 0 8px rgba(240,184,110,0.55)); }
+.lamp-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2;}
+.lamp-num{ font-size:36px; font-weight:700; font-family:'JetBrains Mono'; }
+.lamp-label{ font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:4px; }
+
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:22px; }
+.stat-pill{ background:var(--bg-2); border:1px solid var(--border); border-radius:16px; padding:12px 6px; text-align:center; }
+.stat-pill .n{ font-family:'JetBrains Mono'; font-size:16px; font-weight:700; color:var(--glow); }
+.stat-pill .l{ font-size:9.5px; color:var(--ink-faint); font-weight:700; letter-spacing:0.03em; text-transform:uppercase; margin-top:3px; }
+
+.qa-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:20px; }
+.qa-btn{
+  border:1px solid var(--border); background:var(--bg-2); border-radius:18px; padding:14px 4px;
+  display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; color:var(--ink);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.qa-btn:active{ transform:scale(0.94); }
+.qa-btn .ic{ width:22px; height:22px; }
+.qa-btn span{ font-size:10.5px; font-weight:700; }
+
+.badge-strip{ display:flex; gap:10px; overflow-x:auto; padding:2px 2px 6px 2px; }
+.badge-chip{ min-width:74px; background:var(--bg-2); border:1px solid var(--border); border-radius:16px; padding:12px 6px; text-align:center; flex-shrink:0; }
+.badge-chip.locked{ opacity:0.3; filter:grayscale(0.6); }
+.badge-chip .ic{ font-size:22px; }
+.badge-chip .nm{ font-size:9.5px; font-weight:700; margin-top:5px; line-height:1.2; }
+
+.affirm-card{ text-align:center; padding:26px 18px; position:relative; }
+.affirm-card p{ font-size:17px; font-weight:500; line-height:1.5; margin:0; }
+.bookmark-btn{ position:absolute; top:14px; right:14px; background:none; border:none; cursor:pointer; font-size:18px; opacity:0.5; }
+.bookmark-btn.saved{ opacity:1; }
+
+.btn-glow{ background:linear-gradient(135deg, var(--glow), var(--glow-dim)); color:#241A0C; border:none; border-radius:16px; padding:15px 20px; font-weight:700; font-size:14px; cursor:pointer; width:100%; }
+.btn-glow:disabled{ opacity:0.35; cursor:not-allowed; }
+.btn-outline{ background:none; border:1.5px solid var(--border-2); color:var(--ink); border-radius:16px; padding:13px 20px; font-weight:600; font-size:13px; cursor:pointer; width:100%; }
+textarea, input[type=text], input[type=date]{
+  width:100%; background:var(--bg-1); border:1px solid var(--border-2); border-radius:14px; color:var(--ink);
+  padding:14px; font-family:'Inter'; font-size:14px; resize:none;
+}
+
+/* ---- sub nav pills (Calm / Journal) ---- */
+.subnav{ display:flex; gap:8px; margin-bottom:22px; }
+.subnav button{ flex:1; border:1px solid var(--border-2); background:transparent; color:var(--ink-soft); border-radius:14px; padding:10px 6px; font-size:12px; font-weight:700; cursor:pointer; }
+.subnav button.active{ background:var(--glow); color:#241A0C; border-color:var(--glow); }
+.subpage{ display:none; } .subpage.active{ display:block; animation: riseIn .3s ease; }
+
+/* ---- breathe ---- */
+.orb-wrap{ width:220px; height:220px; display:flex; align-items:center; justify-content:center; margin:10px auto 26px auto; position:relative; }
+.orb-halo{ position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle, var(--glow-dim), transparent 70%); filter:blur(10px); opacity:0.5; }
+.orb{ width:128px; height:128px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--glow), var(--glow-dim)); display:flex; align-items:center; justify-content:center; transition:transform 4s ease-in-out; position:relative; z-index:1; box-shadow:0 0 40px rgba(240,184,110,0.35); }
+.orb-label{ color:#241A0C; font-weight:700; font-size:14px; font-family:'Fraunces'; }
+.pace-row{ display:flex; gap:8px; justify-content:center; margin-bottom:8px; flex-wrap:wrap; }
+.pace-chip{ border:1px solid var(--border-2); background:var(--bg-2); border-radius:20px; padding:8px 13px; font-size:11.5px; font-weight:700; cursor:pointer; color:var(--ink-soft); }
+.pace-chip.active{ background:var(--glow); color:#241A0C; border-color:var(--glow); }
+
+/* ---- grounding ---- */
+.ground-step{ text-align:center; padding:34px 20px; }
+.ground-step .num{ font-family:'JetBrains Mono'; font-size:44px; color:var(--glow); font-weight:700; }
+.ground-step h3{ margin:10px 0 6px 0; }
+.ground-list{ text-align:left; margin-top:18px; }
+.ground-list textarea{ margin-bottom:8px; min-height:44px; }
+
+/* ---- sounds ---- */
+.sound-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:6px; }
+.sound-card{ border:1px solid var(--border); background:var(--bg-2); border-radius:18px; padding:18px 10px; text-align:center; cursor:pointer; }
+.sound-card.playing{ border-color:var(--glow); background:var(--bg-3); }
+.sound-card .ic{ font-size:26px; }
+.sound-card .nm{ font-size:12px; font-weight:700; margin-top:6px; }
+.vol-row{ display:flex; align-items:center; gap:10px; margin-top:18px; }
+.vol-row input{ flex:1; accent-color:var(--glow); }
+
+/* ---- vent ---- */
+#ventTextarea{ min-height:160px; }
+.vent-canvas-wrap{ position:relative; }
+.vent-fade{ transition: opacity 1.1s ease, transform 1.1s ease, filter 1.1s ease; }
+
+/* ---- gratitude jar ---- */
+.jar-shape{ width:150px; height:170px; margin:0 auto 14px auto; position:relative; }
+.jar-items{ display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+.jar-item{ background:var(--bg-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; font-size:13px; }
+.jar-reveal{ text-align:center; padding:22px; }
+
+/* ---- letters ---- */
+.letter-card{ background:var(--bg-2); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:10px; }
+.letter-card .meta{ font-size:11px; color:var(--ink-faint); font-weight:700; margin-bottom:6px; }
+.letter-card.locked{ opacity:0.7; }
+.letter-card.ready{ border-color:var(--glow); }
+
+/* ---- mood ---- */
+.mood-row{ display:flex; gap:8px; }
+.mood-btn{ flex:1; background:var(--bg-2); border:1.5px solid var(--border); border-radius:16px; padding:14px 4px; text-align:center; cursor:pointer; font-size:22px; }
+.mood-btn.selected{ border-color:var(--glow); background:var(--bg-3); }
+
+/* ---- chart ---- */
+.chart-wrap{ display:flex; align-items:flex-end; gap:8px; height:100px; margin-top:14px; }
+.chart-bar{ flex:1; background:linear-gradient(180deg, var(--glow), var(--glow-dim)); border-radius:6px 6px 3px 3px; min-height:4px; position:relative; }
+.chart-labels{ display:flex; gap:8px; margin-top:6px; }
+.chart-labels span{ flex:1; text-align:center; font-size:9.5px; color:var(--ink-faint); font-weight:700; }
+
+.reflect-card p{ font-size:14.5px; line-height:1.6; margin:0; }
+
+.toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); }
+.toggle-row:last-child{ border-bottom:none; }
+.toggle{ width:44px; height:26px; border-radius:20px; background:var(--bg-3); position:relative; cursor:pointer; border:1px solid var(--border-2); flex-shrink:0; }
+.toggle.on{ background:var(--glow); }
+.toggle .knob{ width:20px; height:20px; border-radius:50%; background:var(--ink); position:absolute; top:2px; left:2px; transition:left 0.2s ease; }
+.toggle.on .knob{ left:20px; background:#241A0C; }
+
+.crisis-note{ margin-top:24px; padding:16px; border-radius:16px; background:var(--bg-2); border:1px solid var(--border); font-size:12.5px; color:var(--ink-soft); line-height:1.6; }
+.crisis-note a{ color:var(--glow); font-weight:700; text-decoration:none; }
+
+.badge-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.badge-card{ background:var(--bg-2); border:1px solid var(--border); border-radius:16px; padding:14px 6px; text-align:center; }
+.badge-card.locked{ opacity:0.3; filter:grayscale(0.6); }
+.badge-card .ic{ font-size:24px; }
+.badge-card .nm{ font-size:10px; font-weight:700; margin-top:6px; line-height:1.2; }
+.badge-card .cd{ font-size:8.5px; color:var(--ink-faint); margin-top:2px; }
+
+/* ---- nav bar ---- */
+.navbar{ position:absolute; bottom:0; left:0; right:0; max-width:460px; margin:0 auto; background:var(--bg-1); border-top:1px solid var(--border); display:flex; padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:10; }
+.nav-btn{ flex:1; background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-faint); padding:6px 2px; border-radius:14px; font-size:10px; font-weight:700; }
+.nav-btn svg{ width:20px; height:20px; stroke:var(--ink-faint); }
+.nav-btn.active{ color:var(--glow); background:var(--bg-2); }
+.nav-btn.active svg{ stroke:var(--glow); }
+
+.toast{ position:absolute; bottom:90px; left:50%; transform:translateX(-50%); background:var(--bg-3); border:1px solid var(--border-2); color:var(--ink); padding:11px 18px; border-radius:30px; font-size:12.5px; font-weight:600; opacity:0; pointer-events:none; transition:opacity 0.3s ease, transform 0.3s ease; z-index:30; white-space:nowrap; }
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+
+/* ---- onboarding ---- */
+#onboard{ position:absolute; inset:0; z-index:50; background:var(--bg-0); display:flex; flex-direction:column; justify-content:center; padding:32px; text-align:center; }
+#onboard .lamp-mini{ width:64px; height:64px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--glow), var(--glow-dim)); margin:0 auto 24px auto; box-shadow:0 0 40px rgba(240,184,110,0.4); }
+#onboard input{ margin-top:20px; text-align:center; font-size:16px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+
+  <!-- ONBOARDING -->
+  <div id="onboard">
+    <div id="onboardStep1">
+      <div class="lamp-mini"></div>
+      <h1 class="serif" style="font-size:26px; margin:0;">Welcome to Anchor</h1>
+      <p class="sub" style="margin-top:10px;">A quiet place to check in with yourself. What should we call you?</p>
+      <input type="text" id="onboardName" placeholder="Your name" maxlength="20">
+      <button class="btn-glow" style="margin-top:22px;" onclick="goOnboardStep2()">Continue</button>
+    </div>
+    <div id="onboardStep2" style="display:none;">
+      <h1 class="serif" style="font-size:24px; margin:0;">What brought you here?</h1>
+      <p class="sub" style="margin-top:10px;">Pick whatever fits — this just helps us show you the right things first. You can pick more than one.</p>
+      <div id="onboardReasons" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:18px;">
+        <button class="pace-chip" data-reason="stress" onclick="toggleReason(this)">Stress</button>
+        <button class="pace-chip" data-reason="loneliness" onclick="toggleReason(this)">Loneliness</button>
+        <button class="pace-chip" data-reason="sleep" onclick="toggleReason(this)">Sleep trouble</button>
+        <button class="pace-chip" data-reason="anxiety" onclick="toggleReason(this)">Anxiety</button>
+        <button class="pace-chip" data-reason="low_mood" onclick="toggleReason(this)">Low mood</button>
+        <button class="pace-chip" data-reason="just_curious" onclick="toggleReason(this)">Just curious</button>
+      </div>
+      <button class="btn-glow" style="margin-top:26px;" onclick="finishOnboarding()">Begin</button>
+    </div>
+  </div>
+
+  <!-- ===================== HOME ===================== -->
+  <div class="screen active" id="screen-home">
+    <div class="eyebrow" id="greetTime">Good morning</div>
+    <h1 class="h1" id="greetName">Hi, friend</h1>
+
+    <div class="lamp-wrap">
+      <div class="lamp-halo"></div>
+      <svg class="lamp-svg" viewBox="0 0 220 220">
+        <circle class="lamp-track" cx="110" cy="110" r="94"></circle>
+        <circle class="lamp-progress" id="lampProgress" cx="110" cy="110" r="94" stroke-dasharray="590" stroke-dashoffset="590"></circle>
+      </svg>
+      <div class="lamp-center">
+        <div class="lamp-num" id="stepsToday">0</div>
+        <div class="lamp-label">of <span id="stepsGoalLabel">6000</span> steps</div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:10px;" id="manualStepHint">
+      <button class="mini-link" onclick="logSteps()">+ log a short walk</button>
+    </div>
+    <div style="text-align:center; margin-top:6px; display:none;" id="autoStepHint">
+      <span class="sub" style="margin:0;">🚶 Steps are tracking automatically</span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-pill"><div class="n" id="streakCount">0</div><div class="l">Streak</div></div>
+      <div class="stat-pill"><div class="n" id="coinCount">0</div><div class="l">Coins</div></div>
+      <div class="stat-pill"><div class="n" id="waterCountHome">0/8</div><div class="l">Water</div></div>
+      <div class="stat-pill"><div class="n" id="badgeCountHome">0/14</div><div class="l">Badges</div></div>
+    </div>
+
+    <div class="qa-grid">
+      <button class="qa-btn" onclick="goTo('calm','breathe')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--glow)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg><span>Breathe</span></button>
+      <button class="qa-btn" onclick="goTo('journal','vent')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2" stroke-linecap="round"><path d="M12 20l9-9-9-9-9 9z"></path></svg><span>Vent</span></button>
+      <button class="qa-btn" onclick="goTo('home','scratch')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--glow)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M9 12l2 2 4-4"></path></svg><span>Scratch</span></button>
+      <button class="qa-btn" onclick="goTo('calm','ground')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--mint)" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"></path></svg><span>Ground</span></button>
+    </div>
+
+    <div class="section-label">Your badges <button class="mini-link" onclick="goTo('progress')">See all</button></div>
+    <div class="badge-strip" id="homeBadgeStrip"></div>
+
+    <div class="section-label">A reminder</div>
+    <div class="glass affirm-card">
+      <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()">♡</button>
+      <p class="serif-i" id="affirmationText">You don't have to have it all figured out today.</p>
+    </div>
+
+    <div class="glass" style="text-align:center; padding:16px 18px;">
+      <p class="sub" style="margin:0;" id="communityStatText">You're not the only one here right now — others are opening their scratch card and taking a breath today too.</p>
+    </div>
+  </div>
+
+  <!-- ===================== HOME/SCRATCH (kept simple, own screen id) ===================== -->
+  <div class="screen" id="screen-home-scratch">
+    <div class="eyebrow">Once a day</div>
+    <h1 class="h1">Scratch card</h1>
+    <div class="glass" style="padding:0; overflow:hidden; position:relative; aspect-ratio:4/3;">
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:8px;">🪙</div>
+        <p class="serif" style="font-size:16px; font-weight:600; margin:0;" id="scratchMessage">You showed up today. That counts.</p>
+      </div>
+      <canvas id="scratchCanvas" style="position:absolute; inset:0; touch-action:none;"></canvas>
+    </div>
+    <div class="sub" id="scratchHint" style="text-align:center;">Rub the card with your finger to reveal today's message</div>
+    <div class="sub" id="scratchDoneMsg" style="display:none; text-align:center;">You've already opened today's card — come back tomorrow 🌙</div>
+  </div>
+
+  <!-- ===================== CALM ===================== -->
+  <div class="screen" id="screen-calm">
+    <div class="eyebrow">Calm space</div>
+    <h1 class="h1">Just breathe</h1>
+    <div class="subnav">
+      <button class="active" data-sub="breathe" onclick="setCalmTab('breathe')">Breathe</button>
+      <button data-sub="ground" onclick="setCalmTab('ground')">Ground</button>
+      <button data-sub="sounds" onclick="setCalmTab('sounds')">Sounds</button>
+    </div>
+
+    <div class="subpage active" id="calm-breathe">
+      <div class="pace-row">
+        <button class="pace-chip active" data-pace="box" onclick="setPace('box')">Box</button>
+        <button class="pace-chip" data-pace="478" onclick="setPace('478')">4-7-8</button>
+        <button class="pace-chip" data-pace="deep" onclick="setPace('deep')">Slow &amp; deep</button>
+      </div>
+      <div class="orb-wrap"><div class="orb-halo"></div><div class="orb" id="breatheOrb"><span class="orb-label" id="breatheOrbLabel">Ready</span></div></div>
+      <div class="sub" style="text-align:center;" id="breatheTimer">0:00 breathed today</div>
+      <button class="btn-glow" id="breatheToggleBtn" onclick="toggleBreathing()">Start</button>
+    </div>
+
+    <div class="subpage" id="calm-ground">
+      <p class="sub">The 5-4-3-2-1 technique gently pulls your mind back to the room you're in.</p>
+      <div class="glass ground-step">
+        <div class="num" id="groundNum">5</div>
+        <h3 class="serif" id="groundTitle">Things you can see</h3>
+        <p class="sub" style="margin:0 0 14px 0;" id="groundHint">Look around and name them</p>
+        <textarea id="groundInput" placeholder="Type or just notice them..." style="min-height:70px;"></textarea>
+      </div>
+      <button class="btn-glow" onclick="groundNext()" id="groundBtn">Next</button>
+    </div>
+
+    <div class="subpage" id="calm-sounds">
+      <p class="sub">Let a quiet sound sit in the background while you settle.</p>
+      <div class="sound-grid">
+        <div class="sound-card" data-sound="rain" onclick="toggleSound('rain')"><div class="ic">🌧️</div><div class="nm">Rain</div></div>
+        <div class="sound-card" data-sound="noise" onclick="toggleSound('noise')"><div class="ic">🌫️</div><div class="nm">White noise</div></div>
+        <div class="sound-card" data-sound="waves" onclick="toggleSound('waves')"><div class="ic">🌊</div><div class="nm">Waves</div></div>
+        <div class="sound-card" data-sound="hum" onclick="toggleSound('hum')"><div class="ic">🕯️</div><div class="nm">Low hum</div></div>
+      </div>
+      <div class="vol-row"><span class="sub" style="margin:0;">Vol</span><input type="range" min="0" max="100" value="40" id="volSlider" oninput="setVolume(this.value)"></div>
+    </div>
+  </div>
+
+  <!-- ===================== JOURNAL ===================== -->
+  <div class="screen" id="screen-journal">
+    <div class="eyebrow">Journal</div>
+    <h1 class="h1">Let it out</h1>
+    <div class="subnav">
+      <button class="active" data-sub="vent" onclick="setJournalTab('vent')">Vent</button>
+      <button data-sub="gratitude" onclick="setJournalTab('gratitude')">Gratitude</button>
+      <button data-sub="letters" onclick="setJournalTab('letters')">Letters</button>
+      <button data-sub="saved" onclick="setJournalTab('saved')">Saved</button>
+    </div>
+
+    <div class="subpage active" id="journal-vent">
+      <p class="sub">Write whatever's weighing on you. Nothing here is saved — releasing it is the point.</p>
+      <div class="glass vent-fade" id="ventCard">
+        <textarea id="ventTextarea" placeholder="Start typing..."></textarea>
+      </div>
+      <button class="btn-glow" onclick="releaseVent()">Release it</button>
+    </div>
+
+    <div class="subpage" id="journal-gratitude">
+      <p class="sub">Drop in one small good thing. Shake the jar on a hard day to pull one back out.</p>
+      <div class="glass" style="text-align:center;">
+        <div style="font-size:40px;">🫙</div>
+        <div class="sub" style="margin:6px 0 14px 0;" id="jarCount">0 things in your jar</div>
+        <button class="btn-outline" onclick="shakeJar()">Shake the jar</button>
+      </div>
+      <textarea id="gratitudeInput" placeholder="Something good today was..." style="min-height:60px; margin-bottom:10px;"></textarea>
+      <button class="btn-glow" onclick="addGratitude()">Drop it in</button>
+      <div class="jar-items" id="jarItems"></div>
+    </div>
+
+    <div class="subpage" id="journal-letters">
+      <p class="sub">Write a note to your future self. It stays sealed until the date you choose.</p>
+      <div class="glass">
+        <textarea id="letterInput" placeholder="Dear future me..." style="min-height:90px; margin-bottom:10px;"></textarea>
+        <label class="sub" style="display:block; margin-bottom:6px;">Deliver on</label>
+        <input type="date" id="letterDate" style="margin-bottom:12px;">
+        <button class="btn-glow" onclick="addLetter()">Seal it</button>
+      </div>
+      <div id="lettersList"></div>
+    </div>
+
+    <div class="subpage" id="journal-saved">
+      <p class="sub">Reminders you've bookmarked from Home.</p>
+      <div id="savedList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== PROGRESS ===================== -->
+  <div class="screen" id="screen-progress">
+    <div class="eyebrow">Progress</div>
+    <h1 class="h1">How you've been</h1>
+
+    <div class="glass reflect-card">
+      <div class="section-label" style="margin-top:0;">This week</div>
+      <p id="reflectionText">Come back each day and we'll build your reflection here.</p>
+    </div>
+
+    <div class="section-label">Mood, last 7 days</div>
+    <div class="glass">
+      <div class="chart-wrap" id="moodChart"></div>
+      <div class="chart-labels" id="moodChartLabels"></div>
+    </div>
+
+    <div class="section-label">Steps, last 7 days</div>
+    <div class="glass">
+      <div class="chart-wrap" id="stepsChart"></div>
+      <div class="chart-labels" id="stepsChartLabels"></div>
+    </div>
+
+    <div class="section-label">All badges</div>
+    <div class="badge-grid" id="badgeGridFull"></div>
+  </div>
+
+  <!-- ===================== YOU ===================== -->
+  <div class="screen" id="screen-you">
+    <div class="eyebrow">You</div>
+    <h1 class="h1">Settings &amp; check-ins</h1>
+
+    <div class="section-label" style="margin-top:0;">How are you, right now?</div>
+    <div class="mood-row" id="moodRow">
+      <button class="mood-btn" data-mood="1" onclick="setMood(1)">😔</button>
+      <button class="mood-btn" data-mood="2" onclick="setMood(2)">😕</button>
+      <button class="mood-btn" data-mood="3" onclick="setMood(3)">😐</button>
+      <button class="mood-btn" data-mood="4" onclick="setMood(4)">🙂</button>
+      <button class="mood-btn" data-mood="5" onclick="setMood(5)">😄</button>
+    </div>
+
+    <div class="section-label">Water today</div>
+    <div class="glass" style="display:flex; align-items:center; justify-content:space-between;">
+      <div><div class="mono" style="font-size:20px; font-weight:700;" id="waterCount">0 / 8</div><div class="sub" style="margin:2px 0 0 0;">glasses</div></div>
+      <button class="btn-outline" style="width:auto; padding:12px 18px;" onclick="addWater()">+ Glass</button>
+    </div>
+
+    <div class="section-label">Sleep last night</div>
+    <div class="glass">
+      <input type="range" min="0" max="12" step="0.5" id="sleepSlider" oninput="updateSleepPreview(this.value)">
+      <div style="text-align:center; margin-top:6px; font-weight:700; color:var(--glow);" id="sleepPreview">0 hrs</div>
+    </div>
+
+    <div class="section-label">Daily step goal</div>
+    <div class="glass">
+      <input type="range" min="2000" max="15000" step="500" id="goalSlider" oninput="updateGoalPreview(this.value)">
+      <div style="text-align:center; margin-top:6px; font-weight:700; color:var(--glow);" id="goalPreview">6,000 steps</div>
+    </div>
+
+    <div class="section-label">Reminders</div>
+    <div class="glass" style="padding:6px 20px;">
+      <div class="toggle-row"><span>Morning check-in</span><div class="toggle" id="toggleMorning" onclick="toggleReminder('morning')"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span>Evening wind-down</span><div class="toggle" id="toggleEvening" onclick="toggleReminder('evening')"><div class="knob"></div></div></div>
+    </div>
+
+    <div class="crisis-note">
+      Some days are heavier than others. If it ever feels like too much to carry alone, please reach out to someone you trust, or a helpline in your area — <a href="https://findahelpline.com" target="_blank">findahelpline.com</a> has options by country.
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="navbar">
+    <button class="nav-btn active" data-screen="home" onclick="goTo('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"></path><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"></path></svg>
+      Home
+    </button>
+    <button class="nav-btn" data-screen="calm" onclick="goTo('calm')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+      Calm
+    </button>
+    <button class="nav-btn" data-screen="journal" onclick="goTo('journal')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      Journal
+    </button>
+    <button class="nav-btn" data-screen="progress" onclick="goTo('progress')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 14l4-4 3 3 5-6"></path></svg>
+      Progress
+    </button>
+    <button class="nav-btn" data-screen="you" onclick="goTo('you')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      You
+    </button>
+  </div>
+</div>
+
+<script>
+/* ============ STATE ============ */
+const todayKey = () => new Date().toISOString().slice(0,10);
+const DEFAULT_STATE = {
+  name:null, onboarded:false, reasons:[],
+  goalSteps:6000, waterGoal:8,
+  steps:{}, moods:{}, scratched:{}, water:{}, sleep:{},
+  coins:0, streak:0, lastActiveDate:null,
+  unlockedBadges:[], breathSessions:0,
+  gratitude:[], letters:[], savedAffirmations:[],
+  reminders:{morning:false, evening:false},
+  weeklyDigestScheduled:false,
+  updatedAt:0
+};
+function loadState(){
+  try{ const raw=localStorage.getItem('anchor_state_v2'); if(!raw) return structuredClone(DEFAULT_STATE);
+    return Object.assign(structuredClone(DEFAULT_STATE), JSON.parse(raw)); }
+  catch(e){ return structuredClone(DEFAULT_STATE); }
+}
+function saveState(){
+  state.updatedAt = Date.now();
+  localStorage.setItem('anchor_state_v2', JSON.stringify(state));
+  queueCloudSync();
+}
+let state = loadState();
+
+const BADGES = [
+  {id:'first_breath', icon:'🫁', name:'Breath Taker', cond:'1 breathing session'},
+  {id:'five_breaths', icon:'🌊', name:'Steady Tide', cond:'5 breathing sessions'},
+  {id:'first_scratch', icon:'🪙', name:'Coin Collector', cond:'Open a scratch card'},
+  {id:'week_streak', icon:'🔥', name:'Consistency Gremlin', cond:'7-day streak'},
+  {id:'goal_hit', icon:'🚶', name:'Step Sprite', cond:'Hit your step goal'},
+  {id:'goal_hit_5', icon:'🏔️', name:'Trail Blazer', cond:'Hit goal 5 times'},
+  {id:'mood_logged', icon:'💭', name:'Honest Heart', cond:'Log your mood'},
+  {id:'storm_walker', icon:'⛈️', name:'Storm Walker', cond:'Log mood on a hard day'},
+  {id:'first_vent', icon:'📝', name:'Weight Lifted', cond:'Release a vent'},
+  {id:'gratitude_5', icon:'🫙', name:'Jar Keeper', cond:'5 gratitude drops'},
+  {id:'letter_written', icon:'✉️', name:'Time Traveler', cond:'Write a future letter'},
+  {id:'water_goal', icon:'💧', name:'Well Watered', cond:'Hit water goal'},
+  {id:'sleep_logged', icon:'🌙', name:'Rest Keeper', cond:'Log your sleep'},
+  {id:'grounding_done', icon:'🌳', name:'Rooted', cond:'Finish a grounding exercise'},
+];
+
+/* ============ NATIVE HELPERS ============ */
+function isNative(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+function nativePlugin(name){ return (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins[name] : null; }
+
+/* ============ STEP TRACKING (accelerometer peak-detection) ============ */
+// Uses the official @capacitor/motion plugin. This is a simple, on-device step
+// estimate (not a dedicated step-counter sensor) — good enough to make the
+// steps ring real, but treat the numbers as approximate.
+let stepAccelBuffer = [];
+let lastStepTime = 0;
+
+async function initStepTracking(){
+  const Motion = nativePlugin('Motion');
+  if(!isNative() || !Motion){ return; } // browser preview / plugin missing -> manual button stays
+  try{
+    await Motion.addListener('accel', handleAccelEvent);
+    document.getElementById('manualStepHint').style.display = 'none';
+    document.getElementById('autoStepHint').style.display = 'block';
+  }catch(e){ console.warn('Anchor: motion sensor unavailable, using manual step logging.', e); }
+}
+function handleAccelEvent(event){
+  const a = event.accelerationIncludingGravity || event.acceleration;
+  if(!a) return;
+  const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+  stepAccelBuffer.push(mag);
+  if(stepAccelBuffer.length > 6) stepAccelBuffer.shift();
+  const avg = stepAccelBuffer.reduce((s,v)=>s+v,0)/stepAccelBuffer.length;
+  const now = Date.now();
+  if(mag - avg > 1.4 && now - lastStepTime > 300){
+    lastStepTime = now;
+    const today = todayKey();
+    state.steps[today] = (state.steps[today]||0) + 1;
+    saveState();
+    if(document.getElementById('screen-home').classList.contains('active')) renderHome();
+  }
+}
+
+/* ============ LOCAL NOTIFICATIONS (reminders + weekly digest) ============ */
+const NOTIF_IDS = { morning: 101, evening: 102, weekly: 103 };
+async function ensureNotifPermission(){
+  const LN = nativePlugin('LocalNotifications');
+  if(!LN) return false;
+  try{
+    const perm = await LN.checkPermissions();
+    if(perm.display !== 'granted'){
+      const req = await LN.requestPermissions();
+      return req.display === 'granted';
+    }
+    return true;
+  }catch(e){ return false; }
+}
+async function scheduleReminder(which){
+  const LN = nativePlugin('LocalNotifications');
+  if(!LN) { showToast('Reminders need the installed app, not the browser preview'); return; }
+  const ok = await ensureNotifPermission();
+  if(!ok){ showToast('Notification permission was not granted'); return; }
+  const hour = which === 'morning' ? 9 : 21;
+  const title = which === 'morning' ? 'Good morning 🌅' : 'Wind down 🌙';
+  const body = which === 'morning' ? 'A quiet minute before the day starts?' : 'How are you feeling as today wraps up?';
+  await LN.schedule({ notifications: [{
+    id: NOTIF_IDS[which], title, body,
+    schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true }
+  }]});
+}
+async function cancelReminder(which){
+  const LN = nativePlugin('LocalNotifications');
+  if(!LN) return;
+  await LN.cancel({ notifications: [{ id: NOTIF_IDS[which] }] });
+}
+async function scheduleWeeklyDigest(){
+  const LN = nativePlugin('LocalNotifications');
+  if(!LN || state.weeklyDigestScheduled) return;
+  const ok = await ensureNotifPermission();
+  if(!ok) return;
+  try{
+    await LN.schedule({ notifications: [{
+      id: NOTIF_IDS.weekly,
+      title: 'Your week, gently summed up 🌿',
+      body: 'Your reflection is ready in the Progress tab.',
+      schedule: { on: { weekday: 1, hour: 18, minute: 0 }, repeats: true, allowWhileIdle: true }
+    }]});
+    state.weeklyDigestScheduled = true;
+    saveState();
+  }catch(e){ /* silent, non-critical */ }
+}
+
+/* ============ SHARE A BADGE ============ */
+async function shareBadge(badgeId){
+  const b = BADGES.find(x=>x.id===badgeId);
+  if(!b) return;
+  const text = `I just earned "${b.icon} ${b.name}" on Anchor — ${b.cond}. Small steps count. 🌿`;
+  const ShareApi = nativePlugin('Share');
+  try{
+    if(ShareApi){
+      await ShareApi.share({ title: 'Anchor badge', text, dialogTitle: 'Share your badge' });
+    } else if(navigator.share){
+      await navigator.share({ title: 'Anchor badge', text });
+    } else if(navigator.clipboard){
+      await navigator.clipboard.writeText(text);
+      showToast('Copied to clipboard 📋');
+    }
+  }catch(e){ /* user cancelled share sheet, ignore */ }
+}
+
+/* ============ CLOUD SYNC (Supabase) ============ */
+// Fill these in from your own Supabase project: Settings -> API
+// Leave as-is to run in local-only mode (everything still works, just device-only).
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+let sb = null;
+let cloudUser = null;
+let cloudReady = false;
+let syncTimeout = null;
+
+function cloudConfigured(){
+  return SUPABASE_URL && SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.length > 20;
+}
+
+async function initCloud(){
+  if(!cloudConfigured() || typeof supabase === 'undefined'){
+    console.log('Anchor: running local-only (no Supabase configured).');
+    return;
+  }
+  try{
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let { data: { session } } = await sb.auth.getSession();
+    if(!session){
+      const { data, error } = await sb.auth.signInAnonymously();
+      if(error) throw error;
+      session = data.session;
+    }
+    cloudUser = session.user;
+    cloudReady = true;
+    await pullCloudState();
+    fetchCommunityStats();
+  }catch(e){
+    console.warn('Anchor cloud init failed, staying local-only:', e.message);
+    cloudReady = false;
+  }
+}
+
+async function pullCloudState(){
+  if(!cloudReady) return;
+  const { data, error } = await sb.from('user_data').select('state, updated_at').eq('id', cloudUser.id).maybeSingle();
+  if(error){ console.warn('pullCloudState error', error.message); return; }
+  if(data && data.state){
+    const remoteUpdated = new Date(data.updated_at).getTime();
+    if(remoteUpdated > (state.updatedAt||0)){
+      state = Object.assign(structuredClone(DEFAULT_STATE), data.state);
+      localStorage.setItem('anchor_state_v2', JSON.stringify(state));
+      renderHome();
+    }
+  } else {
+    pushCloudState();
+  }
+}
+
+function queueCloudSync(){
+  if(!cloudReady) return;
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(pushCloudState, 1500);
+}
+async function pushCloudState(){
+  if(!cloudReady) return;
+  try{
+    await sb.from('user_data').upsert({ id: cloudUser.id, state: state, updated_at: new Date().toISOString() });
+  }catch(e){ console.warn('pushCloudState failed', e.message); }
+}
+
+async function incrementCommunityStat(column){
+  if(!cloudReady) return;
+  try{ await sb.rpc('increment_stat', { stat_column: column }); }catch(e){ /* silent */ }
+}
+
+async function fetchCommunityStats(){
+  if(!cloudReady) return;
+  try{
+    const today = todayKey();
+    const { data } = await sb.from('community_stats').select('*').eq('day', today).maybeSingle();
+    if(data){
+      const el = document.getElementById('communityStatText');
+      if(el) el.textContent = `${(data.scratch_opens||0).toLocaleString()} people opened their scratch card today. ${(data.breath_sessions||0).toLocaleString()} took a breathing break.`;
+    }
+  }catch(e){ /* silent */ }
+}
+
+/* ============ ONBOARDING ============ */
+let pendingReasons = [];
+function goOnboardStep2(){
+  document.getElementById('onboardStep1').style.display = 'none';
+  document.getElementById('onboardStep2').style.display = 'block';
+}
+function toggleReason(btn){
+  btn.classList.toggle('active');
+  const r = btn.dataset.reason;
+  const idx = pendingReasons.indexOf(r);
+  if(idx>-1) pendingReasons.splice(idx,1); else pendingReasons.push(r);
+}
+function finishOnboarding(){
+  const name = document.getElementById('onboardName').value.trim();
+  state.name = name || 'friend';
+  state.reasons = pendingReasons.slice();
+  state.onboarded = true;
+  saveState();
+  document.getElementById('onboard').style.display = 'none';
+  renderHome();
+  scheduleWeeklyDigest();
+}
+if(state.onboarded){ document.getElementById('onboard').style.display = 'none'; }
+
+/* ============ NAV ============ */
+function goTo(screen, sub){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const id = screen==='home' && sub==='scratch' ? 'home-scratch' : screen;
+  document.getElementById('screen-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===screen));
+  if(screen==='home' && sub!=='scratch') renderHome();
+  if(id==='home-scratch') renderScratch();
+  if(screen==='journal') renderJournal();
+  if(screen==='progress') renderProgress();
+  if(screen==='you') renderYou();
+  if(screen==='calm' && sub) setCalmTab(sub);
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ============ STREAK ============ */
+function checkStreak(){
+  const today = todayKey();
+  if(state.lastActiveDate === today) return;
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  state.streak = (state.lastActiveDate === yesterday) ? state.streak+1 : 1;
+  state.lastActiveDate = today;
+  saveState();
+}
+
+/* ============ BADGES ============ */
+function unlockBadge(id){
+  if(state.unlockedBadges.includes(id)) return;
+  state.unlockedBadges.push(id); saveState();
+  showToast('🎉 New badge: ' + BADGES.find(x=>x.id===id).name);
+}
+function checkBadges(){
+  const goalHits = Object.values(state.steps).filter(v=>v>=state.goalSteps).length;
+  if(goalHits>=1) unlockBadge('goal_hit');
+  if(goalHits>=5) unlockBadge('goal_hit_5');
+  if(state.streak>=7) unlockBadge('week_streak');
+  if(Object.keys(state.scratched).length>=1) unlockBadge('first_scratch');
+  if(Object.keys(state.moods).length>=1) unlockBadge('mood_logged');
+  if(Object.values(state.moods).some(v=>v<=2)) unlockBadge('storm_walker');
+  if(state.gratitude.length>=5) unlockBadge('gratitude_5');
+  if(state.letters.length>=1) unlockBadge('letter_written');
+  if((state.water[todayKey()]||0) >= state.waterGoal) unlockBadge('water_goal');
+  if(Object.keys(state.sleep).length>=1) unlockBadge('sleep_logged');
+  updateCounts();
+}
+function updateCounts(){
+  document.getElementById('badgeCountHome').textContent = state.unlockedBadges.length+'/'+BADGES.length;
+  document.getElementById('coinCount').textContent = state.coins;
+  document.getElementById('streakCount').textContent = state.streak;
+  document.getElementById('waterCountHome').textContent = (state.water[todayKey()]||0)+'/'+state.waterGoal;
+}
+
+/* ============ HOME ============ */
+const AFFIRMATIONS = [
+  {t:"You don't have to have it all figured out today.", tags:['stress','anxiety']},
+  {t:"Showing up half-hearted still counts as showing up.", tags:['low_mood']},
+  {t:"This feeling is real, but it is not permanent.", tags:['anxiety','low_mood']},
+  {t:"You're allowed to rest without earning it first.", tags:['stress','sleep']},
+  {t:"One small step counts more than a perfect plan.", tags:['stress']},
+  {t:"You are not behind. You are exactly on your own timeline.", tags:['low_mood','just_curious']},
+  {t:"It's okay to need a minute. Take it.", tags:['anxiety','stress']},
+  {t:"You've made it through every hard day so far.", tags:['low_mood','loneliness']},
+  {t:"You are not alone in this, even when it feels quiet.", tags:['loneliness']},
+  {t:"Reaching out is a sign of strength, not weakness.", tags:['loneliness']},
+  {t:"Your mind deserves rest as much as your body does.", tags:['sleep']},
+  {t:"A racing mind doesn't mean something is wrong with you.", tags:['anxiety']}
+];
+let currentAffirmation = AFFIRMATIONS[0].t;
+function pickAffirmation(){
+  const tagged = state.reasons && state.reasons.length
+    ? AFFIRMATIONS.filter(a => a.tags.some(tag => state.reasons.includes(tag)))
+    : [];
+  const pool = tagged.length ? tagged : AFFIRMATIONS;
+  return pool[Math.floor(Math.random()*pool.length)].t;
+}
+
+function renderHome(){
+  const hour = new Date().getHours();
+  document.getElementById('greetTime').textContent = hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  document.getElementById('greetName').textContent = 'Hi, ' + (state.name || 'friend');
+
+  const stepsToday = state.steps[todayKey()]||0;
+  document.getElementById('stepsToday').textContent = stepsToday.toLocaleString();
+  document.getElementById('stepsGoalLabel').textContent = state.goalSteps.toLocaleString();
+  const circ = 590, pct = Math.min(1, stepsToday/state.goalSteps);
+  document.getElementById('lampProgress').style.strokeDashoffset = circ-(circ*pct);
+
+  updateCounts();
+
+  const strip = document.getElementById('homeBadgeStrip'); strip.innerHTML='';
+  BADGES.slice(0,7).forEach(b=>{
+    const unlocked = state.unlockedBadges.includes(b.id);
+    const d = document.createElement('div');
+    d.className = 'badge-chip'+(unlocked?'':' locked');
+    d.innerHTML = `<div class="ic">${b.icon}</div><div class="nm">${b.name}</div>`;
+    strip.appendChild(d);
+  });
+
+  currentAffirmation = pickAffirmation();
+  document.getElementById('affirmationText').textContent = currentAffirmation;
+  document.getElementById('bookmarkBtn').classList.toggle('saved', state.savedAffirmations.includes(currentAffirmation));
+  document.getElementById('bookmarkBtn').textContent = state.savedAffirmations.includes(currentAffirmation) ? '♥' : '♡';
+}
+function toggleBookmark(){
+  const idx = state.savedAffirmations.indexOf(currentAffirmation);
+  if(idx>-1){ state.savedAffirmations.splice(idx,1); } else { state.savedAffirmations.push(currentAffirmation); showToast('Saved to Journal'); }
+  saveState();
+  document.getElementById('bookmarkBtn').classList.toggle('saved', state.savedAffirmations.includes(currentAffirmation));
+  document.getElementById('bookmarkBtn').textContent = state.savedAffirmations.includes(currentAffirmation) ? '♥' : '♡';
+}
+function logSteps(){
+  const today = todayKey();
+  state.steps[today] = (state.steps[today]||0) + Math.floor(400+Math.random()*600);
+  checkStreak(); saveState(); checkBadges(); renderHome();
+  showToast('Walk logged 🚶');
+}
+
+/* ============ BREATHE ============ */
+const PACES = { box:{inhale:4,hold:4,exhale:4,holdOut:4}, '478':{inhale:4,hold:7,exhale:8,holdOut:0}, deep:{inhale:5,hold:0,exhale:6,holdOut:0} };
+let currentPace='box', breathing=false, breatheTimerInterval=null, breatheSeconds=0, breathePhaseTimeout=null;
+function setPace(p){ currentPace=p; document.querySelectorAll('.pace-chip').forEach(c=>c.classList.toggle('active', c.dataset.pace===p)); }
+function toggleBreathing(){
+  breathing=!breathing;
+  const btn=document.getElementById('breatheToggleBtn'), orb=document.getElementById('breatheOrb');
+  if(breathing){ btn.textContent='Stop'; runBreathCycle();
+    breatheTimerInterval=setInterval(()=>{ breatheSeconds++; const m=Math.floor(breatheSeconds/60), s=breatheSeconds%60; document.getElementById('breatheTimer').textContent=`${m}:${s.toString().padStart(2,'0')} breathed today`; },1000);
+  } else {
+    btn.textContent='Start'; clearTimeout(breathePhaseTimeout); clearInterval(breatheTimerInterval);
+    orb.style.transform='scale(1)'; document.getElementById('breatheOrbLabel').textContent='Ready';
+    if(breatheSeconds>5){ unlockBadge('first_breath'); state.breathSessions++; if(state.breathSessions>=5) unlockBadge('five_breaths'); saveState(); checkBadges(); incrementCommunityStat('breath_sessions'); }
+  }
+}
+function runBreathCycle(){
+  if(!breathing) return;
+  const pace=PACES[currentPace], orb=document.getElementById('breatheOrb'), label=document.getElementById('breatheOrbLabel');
+  label.textContent='Inhale'; orb.style.transition=`transform ${pace.inhale}s ease-in-out`; orb.style.transform='scale(1.35)';
+  breathePhaseTimeout=setTimeout(()=>{
+    if(!breathing) return;
+    if(pace.hold>0){ label.textContent='Hold'; breathePhaseTimeout=setTimeout(()=>{ if(breathing) exhalePhase(); }, pace.hold*1000); } else exhalePhase();
+  }, pace.inhale*1000);
+  function exhalePhase(){
+    label.textContent='Exhale'; orb.style.transition=`transform ${pace.exhale}s ease-in-out`; orb.style.transform='scale(1)';
+    breathePhaseTimeout=setTimeout(()=>{
+      if(!breathing) return;
+      if(pace.holdOut>0){ label.textContent='Hold'; breathePhaseTimeout=setTimeout(()=>{ if(breathing) runBreathCycle(); }, pace.holdOut*1000); } else runBreathCycle();
+    }, pace.exhale*1000);
+  }
+}
+
+/* ============ CALM TABS ============ */
+function setCalmTab(sub){
+  document.querySelectorAll('#screen-calm .subnav button').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
+  document.querySelectorAll('#screen-calm .subpage').forEach(p=>p.classList.remove('active'));
+  document.getElementById('calm-'+sub).classList.add('active');
+}
+
+/* ============ GROUNDING ============ */
+const GROUND_STEPS = [
+  {n:5, t:'Things you can see', h:'Look around and name them'},
+  {n:4, t:'Things you can touch', h:'Notice their texture'},
+  {n:3, t:'Things you can hear', h:'Even the quiet ones'},
+  {n:2, t:'Things you can smell', h:'Or remember the smell of'},
+  {n:1, t:'Thing you can taste', h:'Or one thing you\'re grateful for'}
+];
+let groundIndex=0;
+function groundNext(){
+  groundIndex++;
+  if(groundIndex>=GROUND_STEPS.length){
+    unlockBadge('grounding_done'); checkBadges();
+    showToast('Nicely grounded 🌳');
+    groundIndex=0;
+  }
+  const s=GROUND_STEPS[groundIndex];
+  document.getElementById('groundNum').textContent=s.n;
+  document.getElementById('groundTitle').textContent=s.t;
+  document.getElementById('groundHint').textContent=s.h;
+  document.getElementById('groundInput').value='';
+  document.getElementById('groundBtn').textContent = groundIndex===GROUND_STEPS.length-1 ? 'Finish' : 'Next';
+}
+
+/* ============ SOUNDS (Web Audio, no external assets) ============ */
+let audioCtx=null, activeSoundNodes={}, currentVolume=0.4;
+function ensureAudioCtx(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function makeNoiseBuffer(){
+  const bufferSize = 2*audioCtx.sampleRate;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i] = Math.random()*2-1;
+  return buffer;
+}
+function toggleSound(name){
+  ensureAudioCtx();
+  document.querySelectorAll('.sound-card').forEach(c=>{ if(c.dataset.sound!==name) c.classList.remove('playing'); });
+  const card = document.querySelector(`.sound-card[data-sound="${name}"]`);
+  if(activeSoundNodes[name]){
+    activeSoundNodes[name].stop(); delete activeSoundNodes[name];
+    card.classList.remove('playing');
+    return;
+  }
+  Object.keys(activeSoundNodes).forEach(k=>{ activeSoundNodes[k].stop(); delete activeSoundNodes[k]; });
+  const src = audioCtx.createBufferSource();
+  src.buffer = makeNoiseBuffer(); src.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  const gain = audioCtx.createGain(); gain.gain.value = currentVolume*0.25;
+  if(name==='rain'){ filter.type='highpass'; filter.frequency.value=800; }
+  else if(name==='noise'){ filter.type='lowpass'; filter.frequency.value=4000; }
+  else if(name==='waves'){ filter.type='lowpass'; filter.frequency.value=400; }
+  else { filter.type='lowpass'; filter.frequency.value=150; }
+  src.connect(filter).connect(gain).connect(audioCtx.destination);
+  src.start();
+  activeSoundNodes[name] = src;
+  card.classList.add('playing');
+}
+function setVolume(v){ currentVolume = v/100; }
+
+/* ============ SCRATCH ============ */
+const SCRATCH_MESSAGES = [
+  "You showed up today. That counts.",
+  "Somewhere, someone is glad you exist.",
+  "It's okay to move slowly today.",
+  "You've survived every hard day so far.",
+  "Small steps still move you forward.",
+  "You are allowed to take up space.",
+  "This moment is temporary — you're not.",
+  "Be as kind to yourself as you are to others."
+];
+function renderScratch(){
+  const today=todayKey(), canvas=document.getElementById('scratchCanvas'), frame=canvas.parentElement;
+  const done = !!state.scratched[today];
+  document.getElementById('scratchHint').style.display = done?'none':'block';
+  document.getElementById('scratchDoneMsg').style.display = done?'block':'none';
+  if(done){ canvas.style.display='none'; document.getElementById('scratchMessage').textContent = state.scratched[today].message; return; }
+  canvas.style.display='block';
+  const rect = frame.getBoundingClientRect();
+  canvas.width=rect.width; canvas.height=rect.height;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  grad.addColorStop(0,'#382F58'); grad.addColorStop(1,'#211D33');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='rgba(240,184,110,0.8)'; ctx.font='700 14px Inter, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('✦ scratch here ✦', canvas.width/2, canvas.height/2);
+  let scratching=false;
+  function getPos(e){ const r=canvas.getBoundingClientRect(); const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:cx-r.left, y:cy-r.top}; }
+  function scratchAt(x,y){ ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.arc(x,y,26,0,Math.PI*2); ctx.fill(); }
+  function checkComplete(){
+    const d = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let cleared=0, total=0;
+    for(let i=3;i<d.length;i+=40){ total++; if(d[i]===0) cleared++; }
+    if(cleared/total>0.55) finish();
+  }
+  function finish(){
+    const msg = SCRATCH_MESSAGES[Math.floor(Math.random()*SCRATCH_MESSAGES.length)];
+    state.scratched[today]={message:msg}; state.coins+=1; saveState(); unlockBadge('first_scratch'); checkBadges();
+    incrementCommunityStat('scratch_opens');
+    canvas.style.transition='opacity 0.4s ease'; canvas.style.opacity='0';
+    setTimeout(()=>{ document.getElementById('scratchMessage').textContent=msg; renderScratch(); },400);
+    showToast('+1 coin 🪙');
+  }
+  const start=(e)=>{ scratching=true; const p=getPos(e); scratchAt(p.x,p.y); };
+  const move=(e)=>{ if(!scratching) return; e.preventDefault(); const p=getPos(e); scratchAt(p.x,p.y); checkComplete(); };
+  const end=()=>{ scratching=false; };
+  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:true}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
+}
+
+/* ============ JOURNAL ============ */
+function setJournalTab(sub){
+  document.querySelectorAll('#screen-journal .subnav button').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
+  document.querySelectorAll('#screen-journal .subpage').forEach(p=>p.classList.remove('active'));
+  document.getElementById('journal-'+sub).classList.add('active');
+}
+function releaseVent(){
+  const ta=document.getElementById('ventTextarea');
+  if(!ta.value.trim()) return;
+  const card=document.getElementById('ventCard');
+  card.style.transform='scale(0.85) rotate(-2deg)'; card.style.opacity='0'; card.style.filter='blur(4px)';
+  setTimeout(()=>{
+    ta.value=''; card.style.transform=''; card.style.opacity=''; card.style.filter='';
+    unlockBadge('first_vent'); checkBadges();
+    incrementCommunityStat('vents_released');
+    showToast('Released. It\'s not saved anywhere.');
+  },1100);
+}
+function addGratitude(){
+  const inp=document.getElementById('gratitudeInput');
+  if(!inp.value.trim()) return;
+  state.gratitude.push({id:Date.now(), text:inp.value.trim()});
+  inp.value=''; saveState(); checkBadges(); renderJournal();
+  showToast('Dropped in the jar 🫙');
+}
+function shakeJar(){
+  if(state.gratitude.length===0){ showToast('Your jar is empty so far'); return; }
+  const item = state.gratitude[Math.floor(Math.random()*state.gratitude.length)];
+  showToast('🫙 "'+item.text+'"');
+}
+function addLetter(){
+  const ta=document.getElementById('letterInput'), dt=document.getElementById('letterDate');
+  if(!ta.value.trim() || !dt.value) return;
+  state.letters.push({id:Date.now(), text:ta.value.trim(), deliverDate:dt.value});
+  ta.value=''; dt.value=''; saveState(); unlockBadge('letter_written'); checkBadges(); renderJournal();
+  showToast('Sealed until that day 💌');
+}
+function renderJournal(){
+  document.getElementById('jarCount').textContent = state.gratitude.length + ' thing' + (state.gratitude.length===1?'':'s') + ' in your jar';
+  const jarItems=document.getElementById('jarItems'); jarItems.innerHTML='';
+  state.gratitude.slice().reverse().slice(0,8).forEach(g=>{
+    const d=document.createElement('div'); d.className='jar-item'; d.textContent=g.text; jarItems.appendChild(d);
+  });
+
+  const lettersList=document.getElementById('lettersList'); lettersList.innerHTML='';
+  const today=todayKey();
+  state.letters.slice().reverse().forEach(l=>{
+    const ready = l.deliverDate <= today;
+    const d=document.createElement('div'); d.className='letter-card '+(ready?'ready':'locked');
+    d.innerHTML = ready
+      ? `<div class="meta">DELIVERED ${l.deliverDate}</div><div>${l.text}</div>`
+      : `<div class="meta">SEALED UNTIL ${l.deliverDate}</div><div>✉️ A letter is waiting for that day</div>`;
+    lettersList.appendChild(d);
+  });
+
+  const savedList=document.getElementById('savedList'); savedList.innerHTML='';
+  if(state.savedAffirmations.length===0){ savedList.innerHTML = '<p class="sub">Nothing saved yet — tap the heart on Home to bookmark one.</p>'; }
+  state.savedAffirmations.slice().reverse().forEach(a=>{
+    const d=document.createElement('div'); d.className='jar-item'; d.textContent=a; savedList.appendChild(d);
+  });
+}
+
+/* ============ YOU ============ */
+function setMood(val){ state.moods[todayKey()]=val; saveState(); checkBadges(); renderYou(); showToast('Mood logged 💭'); }
+function addWater(){ const t=todayKey(); state.water[t]=(state.water[t]||0)+1; saveState(); checkBadges(); renderYou(); renderHome(); }
+function updateSleepPreview(v){ document.getElementById('sleepPreview').textContent = v + ' hrs'; }
+function updateGoalPreview(v){ document.getElementById('goalPreview').textContent = Number(v).toLocaleString()+' steps'; }
+async function toggleReminder(which){
+  state.reminders[which] = !state.reminders[which];
+  saveState();
+  document.getElementById('toggle'+(which==='morning'?'Morning':'Evening')).classList.toggle('on', state.reminders[which]);
+  if(state.reminders[which]) await scheduleReminder(which); else await cancelReminder(which);
+}
+function renderYou(){
+  const todayMood = state.moods[todayKey()];
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.mood)===todayMood));
+  document.getElementById('waterCount').textContent = (state.water[todayKey()]||0)+' / '+state.waterGoal;
+  const sleepVal = state.sleep[todayKey()] || 7;
+  document.getElementById('sleepSlider').value = sleepVal;
+  updateSleepPreview(sleepVal);
+  document.getElementById('sleepSlider').onchange = (e)=>{ state.sleep[todayKey()]=Number(e.target.value); saveState(); checkBadges(); };
+  document.getElementById('goalSlider').value = state.goalSteps;
+  updateGoalPreview(state.goalSteps);
+  document.getElementById('goalSlider').onchange = (e)=>{ state.goalSteps=Number(e.target.value); saveState(); };
+  document.getElementById('toggleMorning').classList.toggle('on', state.reminders.morning);
+  document.getElementById('toggleEvening').classList.toggle('on', state.reminders.evening);
+}
+
+/* ============ PROGRESS ============ */
+function lastNDays(n){
+  const arr=[];
+  for(let i=n-1;i>=0;i--){ arr.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10)); }
+  return arr;
+}
+function renderProgress(){
+  const days = lastNDays(7);
+  const moodChart=document.getElementById('moodChart'), moodLabels=document.getElementById('moodChartLabels');
+  moodChart.innerHTML=''; moodLabels.innerHTML='';
+  days.forEach(d=>{
+    const v = state.moods[d]||0;
+    const bar=document.createElement('div'); bar.className='chart-bar'; bar.style.height = v? (v*18+8)+'px':'4px';
+    moodChart.appendChild(bar);
+    const lab=document.createElement('span'); lab.textContent = new Date(d).toLocaleDateString(undefined,{weekday:'narrow'});
+    moodLabels.appendChild(lab);
+  });
+  const stepsChart=document.getElementById('stepsChart'), stepsLabels=document.getElementById('stepsChartLabels');
+  stepsChart.innerHTML=''; stepsLabels.innerHTML='';
+  const maxSteps = Math.max(state.goalSteps, ...days.map(d=>state.steps[d]||0));
+  days.forEach(d=>{
+    const v = state.steps[d]||0;
+    const bar=document.createElement('div'); bar.className='chart-bar'; bar.style.height = v? Math.max(4,(v/maxSteps)*90)+'px':'4px';
+    stepsChart.appendChild(bar);
+    const lab=document.createElement('span'); lab.textContent = new Date(d).toLocaleDateString(undefined,{weekday:'narrow'});
+    stepsLabels.appendChild(lab);
+  });
+
+  const moodVals = days.map(d=>state.moods[d]).filter(Boolean);
+  const avgMood = moodVals.length ? (moodVals.reduce((a,b)=>a+b,0)/moodVals.length).toFixed(1) : null;
+  const totalSteps = days.reduce((a,d)=>a+(state.steps[d]||0),0);
+  const goalDays = days.filter(d=>(state.steps[d]||0)>=state.goalSteps).length;
+  let text = `You've kept a ${state.streak}-day streak going`;
+  if(avgMood) text += ` with an average mood of ${avgMood}/5`;
+  text += `. You walked ${totalSteps.toLocaleString()} steps this week`;
+  if(goalDays>0) text += ` and hit your goal on ${goalDays} of them`;
+  text += `. ${state.gratitude.length>0 ? 'Your gratitude jar has '+state.gratitude.length+' things in it. ' : ''}Keep going, one day at a time.`;
+  document.getElementById('reflectionText').textContent = text;
+
+  const grid=document.getElementById('badgeGridFull'); grid.innerHTML='';
+  BADGES.forEach(b=>{
+    const unlocked = state.unlockedBadges.includes(b.id);
+    const d=document.createElement('div'); d.className='badge-card'+(unlocked?'':' locked');
+    d.innerHTML = `<div class="ic">${b.icon}</div><div class="nm">${b.name}</div><div class="cd">${b.cond}</div>`
+      + (unlocked ? `<button class="mini-link" style="margin-top:6px; padding:0;" onclick="shareBadge('${b.id}')">Share</button>` : '');
+    grid.appendChild(d);
+  });
+}
+
+/* ============ INIT ============ */
+checkStreak();
+checkBadges();
+renderHome();
+window.addEventListener('resize', ()=>{ if(document.getElementById('screen-home-scratch').classList.contains('active')) renderScratch(); });
+
+initCloud();
+initStepTracking();
+if(state.onboarded) scheduleWeeklyDigest();
+</script>
+</body>
+</html>
