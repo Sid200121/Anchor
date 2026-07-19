@@ -295,6 +295,11 @@ textarea, input[type=text], input[type=date]{
     <div class="glass" style="text-align:center; padding:16px 18px;">
       <p class="sub" style="margin:0;" id="communityStatText">You're not the only one here right now — others are opening their scratch card and taking a breath today too.</p>
     </div>
+
+    <div class="glass" id="debugCard" style="padding:14px 18px; font-size:11px; color:var(--ink-faint); line-height:1.7;">
+      <div style="font-weight:700; color:var(--ink-soft); margin-bottom:4px;">Diagnostics (temporary — safe to ignore)</div>
+      <div id="debugText">checking...</div>
+    </div>
   </div>
 
   <!-- ===================== HOME/SCRATCH (kept simple, own screen id) ===================== -->
@@ -502,6 +507,10 @@ textarea, input[type=text], input[type=date]{
 <script>
 /* ============ STATE ============ */
 const todayKey = () => new Date().toISOString().slice(0,10);
+function safeClone(obj){
+  try{ if(typeof structuredClone === 'function') return structuredClone(obj); }catch(e){}
+  return JSON.parse(JSON.stringify(obj));
+}
 const DEFAULT_STATE = {
   name:null, onboarded:false, reasons:[],
   goalSteps:6000, waterGoal:8,
@@ -514,9 +523,9 @@ const DEFAULT_STATE = {
   updatedAt:0
 };
 function loadState(){
-  try{ const raw=localStorage.getItem('anchor_state_v2'); if(!raw) return structuredClone(DEFAULT_STATE);
-    return Object.assign(structuredClone(DEFAULT_STATE), JSON.parse(raw)); }
-  catch(e){ return structuredClone(DEFAULT_STATE); }
+  try{ const raw=localStorage.getItem('anchor_state_v2'); if(!raw) return safeClone(DEFAULT_STATE);
+    return Object.assign(safeClone(DEFAULT_STATE), JSON.parse(raw)); }
+  catch(e){ return safeClone(DEFAULT_STATE); }
 }
 function saveState(){
   state.updatedAt = Date.now();
@@ -555,7 +564,8 @@ let lastStepTime = 0;
 
 async function initStepTracking(){
   const Motion = nativePlugin('Motion');
-  if(!isNative() || !Motion){ return; } // browser preview / plugin missing -> manual button stays
+  if(!isNative()){ return; } // browser preview -> manual button stays, no need to alarm anyone
+  if(!Motion){ console.warn('Anchor: Motion plugin not found on this build.'); return; }
   try{
     await Motion.addListener('accel', handleAccelEvent);
     document.getElementById('manualStepHint').style.display = 'none';
@@ -595,37 +605,46 @@ async function ensureNotifPermission(){
 }
 async function scheduleReminder(which){
   const LN = nativePlugin('LocalNotifications');
-  if(!LN) { showToast('Reminders need the installed app, not the browser preview'); return; }
-  const ok = await ensureNotifPermission();
-  if(!ok){ showToast('Notification permission was not granted'); return; }
-  const hour = which === 'morning' ? 9 : 21;
-  const title = which === 'morning' ? 'Good morning 🌅' : 'Wind down 🌙';
-  const body = which === 'morning' ? 'A quiet minute before the day starts?' : 'How are you feeling as today wraps up?';
-  await LN.schedule({ notifications: [{
-    id: NOTIF_IDS[which], title, body,
-    schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true }
-  }]});
+  if(!LN) { showToast('Reminders only work in the installed app, not this preview'); return; }
+  try{
+    const ok = await ensureNotifPermission();
+    if(!ok){ showToast('Notification permission was not granted'); return; }
+    const hour = which === 'morning' ? 9 : 21;
+    const title = which === 'morning' ? 'Good morning 🌅' : 'Wind down 🌙';
+    const body = which === 'morning' ? 'A quiet minute before the day starts?' : 'How are you feeling as today wraps up?';
+    await LN.schedule({ notifications: [{
+      id: NOTIF_IDS[which], title, body,
+      schedule: { on: { hour, minute: 0 }, allowWhileIdle: true }
+    }]});
+    showToast((which==='morning'?'Morning':'Evening')+' reminder set for '+hour+':00');
+  }catch(e){ console.warn('scheduleReminder failed', e); showToast('Could not set reminder: '+(e.message||'unknown error')); }
 }
 async function cancelReminder(which){
   const LN = nativePlugin('LocalNotifications');
   if(!LN) return;
-  await LN.cancel({ notifications: [{ id: NOTIF_IDS[which] }] });
+  try{ await LN.cancel({ notifications: [{ id: NOTIF_IDS[which] }] }); }
+  catch(e){ console.warn('cancelReminder failed', e); }
 }
 async function scheduleWeeklyDigest(){
   const LN = nativePlugin('LocalNotifications');
   if(!LN || state.weeklyDigestScheduled) return;
-  const ok = await ensureNotifPermission();
-  if(!ok) return;
   try{
+    const ok = await ensureNotifPermission();
+    if(!ok) return;
+    const now = new Date();
+    const next = new Date(now);
+    const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+    next.setDate(now.getDate() + daysUntilSunday);
+    next.setHours(18,0,0,0);
     await LN.schedule({ notifications: [{
       id: NOTIF_IDS.weekly,
       title: 'Your week, gently summed up 🌿',
       body: 'Your reflection is ready in the Progress tab.',
-      schedule: { on: { weekday: 1, hour: 18, minute: 0 }, repeats: true, allowWhileIdle: true }
+      schedule: { at: next, every: 'week', allowWhileIdle: true }
     }]});
     state.weeklyDigestScheduled = true;
     saveState();
-  }catch(e){ /* silent, non-critical */ }
+  }catch(e){ console.warn('scheduleWeeklyDigest failed', e); }
 }
 
 /* ============ SHARE A BADGE ============ */
@@ -691,7 +710,7 @@ async function pullCloudState(){
   if(data && data.state){
     const remoteUpdated = new Date(data.updated_at).getTime();
     if(remoteUpdated > (state.updatedAt||0)){
-      state = Object.assign(structuredClone(DEFAULT_STATE), data.state);
+      state = Object.assign(safeClone(DEFAULT_STATE), data.state);
       localStorage.setItem('anchor_state_v2', JSON.stringify(state));
       renderHome();
     }
@@ -766,7 +785,15 @@ function goTo(screen, sub){
   if(screen==='you') renderYou();
   if(screen==='calm' && sub) setCalmTab(sub);
 }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function showToast(msg, duration=2200){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),duration); }
+window.addEventListener('error', (e) => {
+  console.error('Anchor error:', e.message, e.filename, e.lineno);
+  showToast('⚠️ ' + e.message, 6000);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('Anchor promise error:', e.reason);
+  showToast('⚠️ ' + (e.reason && e.reason.message ? e.reason.message : 'something failed'), 6000);
+});
 
 /* ============ STREAK ============ */
 function checkStreak(){
@@ -853,6 +880,7 @@ function renderHome(){
 
   currentAffirmation = pickAffirmation();
   document.getElementById('affirmationText').textContent = currentAffirmation;
+  runDiagnostics();
   document.getElementById('bookmarkBtn').classList.toggle('saved', state.savedAffirmations.includes(currentAffirmation));
   document.getElementById('bookmarkBtn').textContent = state.savedAffirmations.includes(currentAffirmation) ? '♥' : '♡';
 }
@@ -1153,6 +1181,19 @@ function renderProgress(){
       + (unlocked ? `<button class="mini-link" style="margin-top:6px; padding:0;" onclick="shareBadge('${b.id}')">Share</button>` : '');
     grid.appendChild(d);
   });
+}
+
+function runDiagnostics(){
+  const el = document.getElementById('debugText');
+  if(!el) return;
+  const lines = [];
+  lines.push('Native app: ' + (isNative() ? 'yes' : 'no (browser)'));
+  lines.push('Capacitor object: ' + (window.Capacitor ? 'present' : 'MISSING'));
+  lines.push('Motion plugin: ' + (nativePlugin('Motion') ? 'found' : 'NOT FOUND'));
+  lines.push('LocalNotifications plugin: ' + (nativePlugin('LocalNotifications') ? 'found' : 'NOT FOUND'));
+  lines.push('Share plugin: ' + (nativePlugin('Share') ? 'found' : 'NOT FOUND'));
+  lines.push('Cloud sync: ' + (cloudConfigured() ? 'configured' : 'not configured (local-only)'));
+  el.innerHTML = lines.join('<br>');
 }
 
 /* ============ INIT ============ */
